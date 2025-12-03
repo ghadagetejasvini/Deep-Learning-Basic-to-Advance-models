@@ -1,0 +1,100 @@
+Explore and compare optimizers such as SGD, Adam, and RMSProp. Analyze the 
+convergence rate and performance of neural networks using different optimization strategies. 
+
+
+import tensorflow as tf
+from tensorflow import keras
+from tensorflow.keras import layers
+from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+import matplotlib.pyplot as plt
+
+# Load dataset
+data = load_breast_cancer()
+X = data.data
+y = data.target
+
+
+# Train-test split
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+
+# Feature scaling
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+
+
+# Function to create model
+def create_model(optimizer):
+    model = keras.Sequential([
+        layers.Dense(16, activation='relu', input_shape=(X_train.shape[1],)),
+        layers.Dense(8, activation='relu'),
+        layers.Dense(1, activation='sigmoid')
+    ])
+    model.compile(optimizer=optimizer,
+                  loss='binary_crossentropy',
+                  metrics=['accuracy'])
+    return model
+
+
+# List of optimizers
+optimizers = {
+    'SGD': keras.optimizers.SGD(learning_rate=0.01),
+    'Adam': keras.optimizers.Adam(learning_rate=0.001),
+    'RMSProp': keras.optimizers.RMSprop(learning_rate=0.001)
+}
+
+
+# Store histories
+histories = {}
+
+
+
+# Train models with different optimizers
+for name, opt in optimizers.items():
+    print(f"\nTraining with {name} optimizer...")
+    model = create_model(opt)
+    history = model.fit(X_train, y_train,
+                        validation_data=(X_test, y_test),
+                        epochs=50,
+                        batch_size=16,
+                        verbose=0)
+    histories[name] = history
+
+
+
+# Plot comparison
+plt.figure(figsize=(14, 6))
+
+# Accuracy
+plt.subplot(1, 2, 1)
+for name, history in histories.items():
+    plt.plot(history.history['val_accuracy'], label=f'{name} Val Acc')
+plt.title('Validation Accuracy Comparison')
+plt.xlabel('Epochs')
+plt.ylabel('Accuracy')
+plt.legend()
+
+# Loss
+plt.subplot(1, 2, 2)
+for name, history in histories.items():
+    plt.plot(history.history['val_loss'], label=f'{name} Val Loss')
+plt.title('Validation Loss Comparison')
+plt.xlabel('Epochs')
+plt.ylabel('Loss')
+plt.legend()
+
+plt.show()
+
+
+
+# Final performance summary
+for name, history in histories.items():
+    final_acc = history.history['val_accuracy'][-1]
+    final_loss = history.history['val_loss'][-1]
+    print(f"{name} → Final Val Accuracy: {final_acc:.4f}, Final Val Loss: {final_loss:.4f}")
